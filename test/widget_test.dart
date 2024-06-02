@@ -1,30 +1,43 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+class VideoListScreenTests(unittest.TestCase):
+    def setUp(self):
+        # Setup the desired capabilities and the Appium driver
+        self.desired_caps = {
+            'platformName': 'Android',  # or 'iOS'
+            'platformVersion': '10',
+            'deviceName': 'Android Emulator',
+            'automationName': 'Flutter',
+            'app': 'path/to/your/app.apk',  # or app bundle for iOS
+        }
+        self.driver = webdriver.Remote('http://localhost:4723/wd/hub', self.desired_caps)
+    
+    def test_video_list_screen(self):
+        # Wait for the video list screen to load
+        video_list_screen = self.driver.find_element_by_accessibility_id("Video List")
+        self.assertIsNotNone(video_list_screen, "Video list screen not loaded")
 
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
+        # Scroll the list and check for a specific title
+        self.driver.execute_script('flutter:scroll', {'direction': 'down', 'element': video_list_screen})
 
-import 'package:flutterdevstv/main.dart';
+        # Assuming titles are accessible by their text
+        titles = self.driver.find_elements_by_class_name('flutter text')
+        expected_titles = [
+            'Intro to Flutter', 'Flutter Widgets', 'Life Cycle of a Widget', 
+            'BlocProvider and RepositoryProvider'
+        ]
+        for title in titles:
+            self.assertIn(title.text, expected_titles, "Unexpected title")
 
-void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+        # Tap on the first item to navigate to the next screen
+        first_item = self.driver.find_element_by_accessibility_id('Intro to Flutter')
+        first_item.click()
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+        # Check if the next screen is loaded
+        next_screen = self.driver.find_element_by_accessibility_id("Video Player Route")
+        self.assertIsNotNone(next_screen, "Next screen not loaded")
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    def tearDown(self):
+        # end the session
+        self.driver.quit()
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
-  });
-}
+if __name__ == '__main__':
+    unittest.main()
