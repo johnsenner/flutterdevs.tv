@@ -19,7 +19,6 @@ class VideoListScreen extends StatelessWidget {
       'title': 'BlocProvider and RepositoryProvider',
       'url': 'https://www.youtube.com/watch?v=jWN5oQXKhWU'
     },
-    // Add more videos as needed
   ];
 
   @override

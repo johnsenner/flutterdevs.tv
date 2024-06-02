@@ -1,41 +1,58 @@
-import unittest
-from appium import webdriver
-from time import sleep
+import 'dart:io';
 
-class AppiumFlutterTVTests(unittest.TestCase):
+import 'package:webdriver/sync_io.dart';
+import 'package:test/test.dart';
 
-    def setUp(self):
-        desired_caps = {
-            'platformName': 'Android',  # or 'iOS' for Apple TV
-            'platformVersion': '9.0',   # Update with your platform version
-            'deviceName': 'Android TV', # or 'Apple TV' for Apple TV
-            'appPackage': 'tv.flutterdevs.flutterdevstv', # Update with your app package name
-            'appActivity': '<your_main_activity>', # Update with your app main activity
-            'automationName': 'Flutter'
-            # Add more desired capabilities as needed
+void main() async {
+  final osSpecificOps = Platform.environment['APPIUM_OS'] == 'android'
+      ? {
+          'platformName': 'Android',
+          'deviceName': 'Pixel 2',
+          'app': '${__dirname()}/../apps/app-free-debug.apk',
         }
-        self.driver = webdriver.Remote('http://localhost:4723/wd/hub', desired_caps)
+      : Platform.environment['APPIUM_OS'] == 'ios'
+          ? {
+              'platformName': 'iOS',
+              'platformVersion': '12.2',
+              'deviceName': 'iPhone X',
+              'noReset': true,
+              'app': '${__dirname()}/../apps/Runner.zip',
+            }
+          : {};
 
-    def tearDown(self):
-        self.driver.quit()
+  final caps = {
+    // ...osSpecificOps,
+    'automationName': 'Flutter',
+    'retryBackoffTime': 500,
+  };
 
-    def test_video_list_navigation(self):
-        # Wait for the app to load
-        sleep(5)
+  final driver = await createDriver(
+    uri: Uri.parse('http://localhost:4723/wd/hub'),
+    desired: caps,
+  );
 
-        # Locate the video list item and click on it
-        video_list_item = self.driver.find_element_by_xpath("//android.widget.ListView/android.widget.LinearLayout[1]")
-        video_list_item.click()
+  final counterTextFinder = By.name('counter');
+  final buttonFinder = By.name('counter');
 
-        # Wait for the player screen to load
-        sleep(5)
+  if (Platform.environment['APPIUM_OS'] == 'android') {
+    await driver.switchTo.frame('NATIVE_APP');
+    await (await driver.findElement(const By.id('~fab'))).click();
+    await driver.switchTo.frame('FLUTTER');
+  } else {
+    print(
+        'Switching context to `NATIVE_APP` is currently only applicable to Android demo app.');
+  }
 
-        # Verify if the player screen is displayed
-        player_screen = self.driver.find_element_by_id("<your_player_screen_id>") # Update with your player screen ID
-        self.assertTrue(player_screen.is_displayed())
+  expect(await (await driver.findElement(counterTextFinder)).text, '0');
 
-    # Add more test cases as needed
+  await (await driver.findElement(buttonFinder)).click();
+  await driver.touchAction([
+    TouchAction.tap(element: await driver.findElement(buttonFinder)),
+  ]);
 
-if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(AppiumFlutterTVTests)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+  expect(await (await driver.findElement(counterTextFinder)).text, '2');
+
+  await driver.quit();
+}
+
+String __dirname() => Platform.script.path.replaceAll(RegExp(r'[^/]*$'), '');
